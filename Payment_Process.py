@@ -2,6 +2,8 @@ from csv import Error
 import pandas as pd
 from datetime import date
 
+#import Card_n_Transcarions.py
+
 # Global Var
 Statement_Summary = "Empty_Message"
 
@@ -16,8 +18,13 @@ class Transaction:
         self.Card = Card
         self.Billed_to = Billed_to
 
+#class Card:
+#    def __init__(self, Name, Transactions):
+#        self.Name =
+
+
 # Read the excel file
-df = pd.read_excel('Expanse_DataBase.xlsx')
+df = pd.read_excel('Statements/Expanse_DataBase.xlsx')
 
 # Convert each row in the DataFrame to a Transaction object, and store all the objects in a list
 transactions = [Transaction(row['date'], row['Expanse'], row['amount'],row['Paid By'], row['Card'], row['Billed_To']) for index, row in df.iterrows()]
@@ -166,7 +173,7 @@ while True:
             if(num == 1):
                 print("You are trying to add a new transcation excel\n")
                 user_input_1 = input("Please enter the name of the new excel\n")
-                user_input_1 = user_input_1 + '.xlsx'
+                user_input_1 = "Statements/" + user_input_1 + '.xlsx'
                 try:
                     df_1 = pd.read_excel(user_input_1)
                     Add_Transction(df_1)
