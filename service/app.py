@@ -31,24 +31,30 @@ def add_data():
         return jsonify({"message": "Data added successfully"}), 201
     return jsonify({"message": "No data provided"}), 400
 
+
 @app.route('/cards')
 def data():
     return render_template('cards.html')
 
+
 @app.route('/cards/<card_id>')
 def card_statements(card_id):
     return render_template('statements.html')
+
 
 @app.route('/hardcode_cards', methods=['GET'])
 def hardcode_cards():
     Card.hardcode_cards()
     return jsonify({"message": "Cards hardcoded successfully"}), 200
 
+
 @app.route('/cards/<card_name>/statements', methods=['GET'])
 def get_statements_by_card(card_name):
-    card = Card.objects(name=card_name)
-    statements = Statement.objects(card=card)
+    card = Card.objects(name=card_name).first()
+    statements = [{"statement_name": statement.name, "start_date": statement.start_date, "end_date": statement.end_date,
+                   "total_spending": statement.total_spending} for statement in Statement.objects(card=card)]
     return jsonify({"statements": statements})
+
 
 @app.route('/cards/info', methods=['GET'])
 def get_cards():
