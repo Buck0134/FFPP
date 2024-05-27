@@ -83,8 +83,8 @@ def email_summary(Statement_Summary):
     password = "lyuhrlkbmxrddmgn"
 
     # Email body
-    subject = "Automatic Message from Faimly Finance Processing Program(FFPP)\n"
-    body = "This email was sent from Faimly Finance Processing Program(FFPP). An update on the balance has been made:\n\n" + Statement_Summary
+    subject = "Automatic Message from Faimly Finance Processing Program(FFPPVenv)\n"
+    body = "This email was sent from Faimly Finance Processing Program(FFPPVenv). An update on the balance has been made:\n\n" + Statement_Summary
     message = f'Subject: {subject}\n\n{body}'
     
     # Create a secure SSL context

@@ -5,3 +5,8 @@
 /myenv
 
 .env
+
+.idea
+
+/FFPPVenv
+/venv

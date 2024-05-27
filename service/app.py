@@ -14,12 +14,13 @@ from models.statement import Statement  # Import the Statement model
 from models.transaction import Transaction  # Import the Transaction model
 from database.connection import client  # Ensure the database connection is established
 
-
 app = Flask(__name__)
+
 
 @app.route('/')
 def home():
     return render_template('index.html')
+
 
 @app.route('/add', methods=['POST'])
 def add_data():
@@ -30,28 +31,49 @@ def add_data():
         return jsonify({"message": "Data added successfully"}), 201
     return jsonify({"message": "No data provided"}), 400
 
+
 @app.route('/data', methods=['GET'])
 def get_data():
     cards = Card.objects()
     cards_list = [{"name": card.name, "cardholder_name": card.cardholder_name} for card in cards]
     return jsonify(cards_list)
 
+
 @app.route('/hardcode_cards', methods=['GET'])
 def hardcode_cards():
     Card.hardcode_cards()
     return jsonify({"message": "Cards hardcoded successfully"}), 200
 
-@app.route('/cards', methods=['GET'])
+
+@app.route('/cards/<card_name>/statements', methods=['GET'])
+def get_statements_by_card(card_name):
+    card = Card.objects(name=card_name)
+    statements = Statement.objects(card=card)
+    return jsonify({"statements": statements})
+
+
+@app.route('/cards/info', methods=['GET'])
 def get_cards():
     cards = Card.objects()
-    cards_list = [{"name": card.name, "cardholder_name": card.cardholder_name} for card in cards]
+    cards_list = []
+    for card in cards:
+        statements = Statement.objects(card=card)
+        cards_list.append({"name": card.name, "cardholder_name": card.cardholder_name, "statements":
+            [statement.name for statement in statements]})
     return jsonify(cards_list)
+
+
+@app.route('/statements/<statement_name>/transactions', methods=['GET'])
+def get_transactions_by_statement(statement_name):
+    statement = Statement.objects(name=statement_name)
+    transactions = Transaction.objects(statement=statement)
+    return jsonify({"transactions": transactions})
 
 def load_data(file_path):
     # Convert .xlsx to .csv if needed
     if file_path.endswith('.xlsx'):
         file_path = convert_xlsx_to_csv(file_path)
-    
+
     # Extract card details from file name
     file_name = os.path.basename(file_path)
     card_name, date_str = file_name.replace('.csv', '').split('-', 1)
@@ -59,7 +81,7 @@ def load_data(file_path):
     card = Card.objects(name=card_name).first()
     # Read the CSV file
     data = pd.read_csv(file_path)
-    
+
     # Create transactions
     transactions = []
     for _, row in data.iterrows():
@@ -75,7 +97,7 @@ def load_data(file_path):
         )
         transaction.save()
         transactions.append(transaction)
-    
+
     # Determine statement start and end dates
     statement_start_date = transactions[0].transaction_date
     statement_end_date = transactions[-1].transaction_date
@@ -85,39 +107,41 @@ def load_data(file_path):
         start_date=statement_start_date,
         end_date=statement_end_date,
         transactions=transactions,
-        total_spending=0  # Initial value, will be calculated
+        total_spending=0,  # Initial value, will be calculated
+        name=file_name
     )
     statement.calculate_total_spending()
     statement.save()
-    
+
     # Link transactions to the statement
     for transaction in transactions:
         transaction.statement = statement
         transaction.save()
-    
+
     card.statements.append(statement)
-    
+
     card.save()
-    
+
     # Link statement to the card
     statement.card = card
     statement.save()
     print(statement)
     return card.calculate_total_spending()
 
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
-    
+
     file = request.files['file']
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
-    
+
     if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
         file_path = os.path.join('/tmp', file.filename)
         file.save(file_path)
-        
+
         try:
             total_spending = load_data(file_path)
             return jsonify({"message": "Data loaded successfully", "total_spending": total_spending}), 200
@@ -126,6 +150,7 @@ def upload_file():
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "Unsupported file type"}), 400
+
 
 if __name__ == '__main__':
     app.run(debug=True)

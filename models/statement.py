@@ -8,6 +8,7 @@ class Statement(me.Document):
     transactions = me.ListField(me.ReferenceField(Transaction), required=False)
     total_spending = me.DecimalField(required=True, precision=2)
     card = me.ReferenceField('Card', required=False)
+    name = me.StringField(required=True)
 
     meta = {'collection': 'statements'}
 
