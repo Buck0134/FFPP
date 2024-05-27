@@ -25,6 +25,10 @@ p {
     color: #6c757d;
 }
 
+p1 {
+    color: #bbbdbe;
+}
+
 a {
     color: #007bff;
     text-decoration: none;
@@ -80,4 +84,32 @@ button:hover {
 
 .hidden {
     display: none;
+}
+
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.card-box {
+    background-color: #007bff;
+    color: white;
+    padding: 20px;
+    margin: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.card-box:hover {
+    transform: scale(1.05);
+}
+
+.statement {
+    background-color: #fff;
+    padding: 20px;
+    margin: 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }

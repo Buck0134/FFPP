@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Page</title>
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetchCards();
+        });
+
+        function fetchCards() {
+            axios.get('/cards/info')
+                .then(response => {
+                    console.log(response)
+                    const cardsContainer = document.getElementById('cards-container');
+                    response.data.forEach(card => {
+                        const cardDiv = document.createElement('div');
+                        cardDiv.className = 'card-box';
+                        cardDiv.innerHTML = `<h3>${card.name}</h3><p1>${card.cardholder_name}</p1>`;
+                        cardDiv.onclick = () => {
+                            window.location.href = `/cards/${card.name}`;
+                        };
+                        cardsContainer.appendChild(cardDiv);
+                    });
+                })
+                .catch(error => console.error('Error fetching cards:', error));
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="container">
+        <h1>Data Page</h1>
+        <p>Here you can view your data.</p>
+        <div id="cards-container" class="cards-container"></div>
+    </div>
+</body>
+</html>

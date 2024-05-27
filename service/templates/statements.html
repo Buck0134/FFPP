@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statements Page</title>
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const cardName = fetchCardName();
+            document.getElementById('card-name').textContent = cardName;
+            fetchStatements(cardName);
+        });
+
+        function fetchCardName() {
+            return window.location.pathname.split('/').pop();
+        }
+
+        function fetchStatements(cardName) {
+            fetch(`/cards/${cardName}/statements`)
+                .then(response => response.json())
+                .then(data => {
+                    const statementsDiv = document.getElementById('statements');
+                    data.statements.forEach(statement => {
+                        const statementDiv = document.createElement('div');
+                        statementDiv.className = 'statement';
+                        statementDiv.innerHTML = `
+                            <h3>Statement Period: ${statement.start_date} to ${statement.end_date}</h3>
+                            <p>Total Spending: $${statement.total_spending}</p>
+                            <ul>
+                                ${statement.transactions.map(transaction => `
+                                    <li>${transaction.date}: ${transaction.description} - $${transaction.amount}</li>
+                                `).join('')}
+                            </ul>
+                        `;
+                        statementsDiv.appendChild(statementDiv);
+                    });
+                })
+                .catch(error => console.error('Error fetching statements:', error));
+        }
+    </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="container">
+        <h1>Statements for Card: <span id="card-name"></span></h1>
+        <div id="statements"></div>
+    </div>
+</body>
+</html>
