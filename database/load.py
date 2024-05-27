@@ -24,26 +24,27 @@ def load_data(file_path):
     # Read the CSV file
     data = pd.read_csv(file_path)
     
-    # Create and save transactions
+    # Create transactions
     transactions = []
     for _, row in data.iterrows():
         transaction = Transaction(
-            transaction_date=datetime.strptime(row['Transaction Date'], '%Y-%m-%d'),
-            clearing_date=datetime.strptime(row['Clearing Date'], '%Y-%m-%d'),
+            transaction_date=datetime.strptime(row['Date'], '%Y-%m-%d'),
             description=row['Description'],
-            merchant=row['Merchant'],
-            category=row['Category'],
-            type=row['Type'].lower(),
-            amount_usd=row['Amount (USD)'],
-            purchased_by=row['Purchased By']
+            amount_usd=row['Amount'],
+            merchant=row.get('Merchant', ''),
+            category=row.get('Category', ''),
+            clearing_date=None,
+            purchased_by=None,
+            card=None  # Will be linked later
         )
         transaction.save()
         transactions.append(transaction)
     
-    # Create and save a statement
-    statement_start_date = datetime.strptime(date_str, '%m_%d_%y')
+    # Determine statement start and end dates
+    statement_start_date = transactions[0].transaction_date
     statement_end_date = transactions[-1].transaction_date
 
+    # Create and save a statement
     statement = Statement(
         start_date=statement_start_date,
         end_date=statement_end_date,
@@ -53,20 +54,29 @@ def load_data(file_path):
     statement.calculate_total_spending()
     statement.save()
     
-    # Create and save a card, or update if it already exists
-    card = Card.objects(card_number="1234-5678-9876-5432").first()
+    # Link transactions to the statement
+    for transaction in transactions:
+        transaction.statement = statement
+        transaction.save()
+    
+    # Find or create the card
+    card = Card.objects(name=card_name).first()
     if not card:
         card = Card(
             name=card_name,
-            card_number="1234-5678-9876-5432",
+            card_number="1234-5678-9876-5432",  # Example card number, adjust as necessary
             statements=[statement],
             cardholder_name=cardholder_name
         )
     else:
         card.statements.append(statement)
+    
     card.save()
     
+    # Link statement to the card
+    statement.card = card
+    statement.save()
+    
     print(f"Data loaded successfully. Total Spending on {card.name}: {card.calculate_total_spending()}")
-
 if __name__ == "__main__":
     load_data('path_to_your_file/Card_MM_DD_YY.csv')

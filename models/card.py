@@ -22,14 +22,18 @@ class Card(me.Document):
         ]
         
         for card_data in cards:
-            card = cls(
-                name=card_data["name"],
-                card_number=card_data["card_number"],
-                cardholder_name=card_data["cardholder_name"],
-                statements=[]
-            )
-            card.save()
-            print(f"Saved card: {card.name} for cardholder: {card.cardholder_name}")
+            card = cls.objects(name=card_data["name"]).first()
+            if not card:
+                card = cls(
+                    name=card_data["name"],
+                    card_number=card_data["card_number"],
+                    cardholder_name=card_data["cardholder_name"],
+                    statements=[]
+                )
+                card.save()
+                print(f"Saved card: {card.name} for cardholder: {card.cardholder_name}")
+            else:
+                print(f"Card {card.name} for cardholder {card.cardholder_name} already exists, skipping.")
 
     @classmethod
     def delete_card(cls, card_name):

@@ -11,6 +11,39 @@
         <h1>Welcome to the FFPP!</h1>
         <p>This is the home page.</p>
         <p><a href="/data">View Data</a></p>
+        
+        <hr>
+
+        <h2>Upload a File</h2>
+        <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Choose file to upload:</label>
+                <input type="file" id="file" name="file" required>
+            </div>
+            <button type="submit">Upload File</button>
+        </form>
+        <div id="message" class="hidden"></div>
     </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = function(event) {
+            event.preventDefault();
+            var formData = new FormData(this);
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", this.action, true);
+            xhr.onload = function () {
+                var messageDiv = document.getElementById('message');
+                if (xhr.status === 200) {
+                    messageDiv.textContent = 'File uploaded successfully';
+                    messageDiv.classList.add('success');
+                } else {
+                    messageDiv.textContent = 'Error uploading file: ' + xhr.responseText;
+                    messageDiv.classList.add('error');
+                }
+                messageDiv.classList.remove('hidden');
+            };
+            xhr.send(formData);
+        };
+    </script>
 </body>
 </html>
