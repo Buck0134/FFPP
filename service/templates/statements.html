@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Statements Page</title>
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const cardName = fetchCardName();
@@ -16,23 +17,27 @@
             return window.location.pathname.split('/').pop();
         }
 
+        function formatDate(date) {
+            const d = new Date(date);
+            const month = d.toLocaleString('default', { month: 'long' }); // Get the full month name
+            const year = d.getFullYear(); // Get the year
+            return `${month} ${year}`;
+        }
+
         function fetchStatements(cardName) {
-            fetch(`/cards/${cardName}/statements`)
-                .then(response => response.json())
-                .then(data => {
+            axios.get(`/cards/${cardName}/statements`)
+                .then(response => {
                     const statementsDiv = document.getElementById('statements');
-                    data.statements.forEach(statement => {
+                    response.data.statements.forEach(statement => {
                         const statementDiv = document.createElement('div');
-                        statementDiv.className = 'statement';
+                        statementDiv.className = 'statement-box';
                         statementDiv.innerHTML = `
-                            <h3>Statement Period: ${statement.start_date} to ${statement.end_date}</h3>
+                            <h3>Statement Period: ${formatDate(statement.start_date)}</h3>
                             <p>Total Spending: $${statement.total_spending}</p>
-                            <ul>
-                                ${statement.transactions.map(transaction => `
-                                    <li>${transaction.date}: ${transaction.description} - $${transaction.amount}</li>
-                                `).join('')}
-                            </ul>
                         `;
+                        statementDiv.onclick = () => {
+                            window.location.href = `/statements/${statement.name}/transactions`;
+                        };
                         statementsDiv.appendChild(statementDiv);
                     });
                 })
@@ -43,7 +48,7 @@
 <body class="bg-gray-100 flex items-center justify-center h-screen">
     <div class="container">
         <h1>Statements for Card: <span id="card-name"></span></h1>
-        <div id="statements"></div>
+        <div id="statements" class="statements-container"></div>
     </div>
 </body>
 </html>

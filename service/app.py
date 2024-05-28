@@ -42,6 +42,11 @@ def card_statements(card_id):
     return render_template('statements.html')
 
 
+@app.route('/statements/<statement_name>/transactions')
+def statement_transactions(statement_name):
+    return render_template('transactions.html')
+
+
 @app.route('/hardcode_cards', methods=['GET'])
 def hardcode_cards():
     Card.hardcode_cards()
@@ -51,7 +56,7 @@ def hardcode_cards():
 @app.route('/cards/<card_name>/statements', methods=['GET'])
 def get_statements_by_card(card_name):
     card = Card.objects(name=card_name).first()
-    statements = [{"statement_name": statement.name, "start_date": statement.start_date, "end_date": statement.end_date,
+    statements = [{"name": statement.name, "start_date": statement.start_date, "end_date": statement.end_date,
                    "total_spending": statement.total_spending} for statement in Statement.objects(card=card)]
     return jsonify({"statements": statements})
 
@@ -67,11 +72,44 @@ def get_cards():
     return jsonify(cards_list)
 
 
-@app.route('/statements/<statement_name>/transactions', methods=['GET'])
+@app.route('/statements/<statement_name>/transactionsInfo', methods=['GET'])
 def get_transactions_by_statement(statement_name):
-    statement = Statement.objects(name=statement_name)
-    transactions = Transaction.objects(statement=statement)
-    return jsonify({"transactions": transactions})
+    print(statement_name)
+    statement = Statement.objects(name=statement_name).first()
+    if not statement:
+        return jsonify({"error": "Statement not found"}), 404
+
+    transactions_data = [
+        {
+            'id': str(transaction.id),
+            'date': transaction.transaction_date.strftime('%Y-%m-%d'),
+            'description': transaction.description,
+            'amount': float(transaction.amount_usd),
+            'purchased_by':transaction.purchased_by
+        }
+        for transaction in statement.transactions
+    ]
+    print('Some')
+    return jsonify({"transactions": transactions_data})
+
+
+@app.route('/transactions/<transaction_id>/label', methods=['PUT'])
+def label_transaction(transaction_id):
+    data = request.get_json()
+    purchased_by = data.get('purchased_by')
+
+    if not purchased_by:
+        return jsonify({"error": "Missing 'purchased_by' field"}), 400
+
+    transaction = Transaction.objects(id=transaction_id).first()
+    if not transaction:
+        return jsonify({"error": "Transaction not found"}), 404
+
+    transaction.purchased_by = purchased_by
+    transaction.save()
+
+    return jsonify({"message": "Transaction labeled successfully", "transaction": transaction.to_json()}), 200
+
 
 def load_data(file_path):
     # Convert .xlsx to .csv if needed
@@ -105,14 +143,14 @@ def load_data(file_path):
     # Determine statement start and end dates
     statement_start_date = transactions[0].transaction_date
     statement_end_date = transactions[-1].transaction_date
-
+    # print(card_name+'_'+date_str)
     # Create and save a statement
     statement = Statement(
         start_date=statement_start_date,
         end_date=statement_end_date,
         transactions=transactions,
         total_spending=0,  # Initial value, will be calculated
-        name=file_name
+        name=card_name+'_'+date_str
     )
     statement.calculate_total_spending()
     statement.save()
@@ -129,7 +167,7 @@ def load_data(file_path):
     # Link statement to the card
     statement.card = card
     statement.save()
-    print(statement)
+    # print(statement)
     return card.calculate_total_spending()
 
 
@@ -150,7 +188,7 @@ def upload_file():
             total_spending = load_data(file_path)
             return jsonify({"message": "Data loaded successfully", "total_spending": total_spending}), 200
         except Exception as e:
-            print(str(e))
+            # print(str(e))
             return jsonify({"error": str(e)}), 500
     else:
         return jsonify({"error": "Unsupported file type"}), 400
