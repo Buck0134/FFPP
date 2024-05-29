@@ -6,16 +6,21 @@
     <title>Transactions Page</title>
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const statementName = fetchStatementName();
             document.getElementById('statement-name').textContent = statementName;
             fetchTransactions(statementName);
+            renderChart();
         });
 
         let transactions = [];
         let currentIndex = 0;
         let isLabelingMode = false;
+        let chartInstance = null;
+        const dates = JSON.parse('{{ dates|tojson | safe }}');
+        const amounts = JSON.parse('{{ amounts|tojson | safe }}');
 
         function fetchStatementName() {
             const pathArray = window.location.pathname.split('/');
@@ -101,13 +106,62 @@
             isLabelingMode = !isLabelingMode;
             renderTransactions();
         }
+
+        function renderChart() {
+            console.log('renderChart called'); // Debug log
+            var ctx = document.getElementById('transactionChart').getContext('2d');
+
+            // Destroy existing chart instance if it exists
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',  // You can choose 'bar', 'line', 'pie', etc.
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Transaction Amount (USD)',
+                        data: amounts,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleChartVisibility() {
+            const chartContainer = document.getElementById('chartContainer');
+            const mainContainer = document.querySelector('.main-container');
+            if (chartContainer.style.display === 'none') {
+                chartContainer.style.display = 'block';
+                mainContainer.style.display = 'none';
+                renderChart(); // Call renderChart when showing the chart
+            } else {
+                chartContainer.style.display = 'none';
+                mainContainer.style.display = 'block';
+            }
+        }
     </script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen">
-    <div class="container">
+    <div class="container main-container">
         <h1>Transactions for Statement: <span id="statement-name"></span></h1>
         <div id="transactions" class="transactions-container"></div>
+        <button onclick="toggleLabelingMode()" class="toggle-label-button">Labeling Mode</button>
+        <button onclick="toggleChartVisibility()" class="toggle-chart-button">Toggle Chart</button>
     </div>
-    <button onclick="toggleLabelingMode()" class="toggle-label-button">Labeling Mode</button>
+    <div id="chartContainer" style="display: none; margin-top: 20px;">
+        <canvas id="transactionChart" width="800" height="600"></canvas>
+        <button onclick="toggleChartVisibility()" class="toggle-chart-button">Toggle Chart</button>
+    </div>
 </body>
 </html>

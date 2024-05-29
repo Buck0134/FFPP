@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template
 import traceback
+from collections import defaultdict
 # from financekit import create_financekit_blueprint
 
 # Add the path to the `database` and `models` directories to the Python path
@@ -49,7 +50,19 @@ def card_statements(card_id):
 
 @app.route('/statements/<statement_name>/transactions')
 def statement_transactions(statement_name):
-    return render_template('transactions.html')
+    statement = Statement.objects(name = statement_name).first()
+    transactions = Transaction.objects(statement=statement.id)
+
+    # Group transactions by date and calculate total amount
+    date_amounts = defaultdict(float)
+    for transaction in transactions:
+        date_str = transaction.transaction_date.strftime('%Y-%m-%d')
+        date_amounts[date_str] += float(transaction.amount_usd)
+    
+    dates = sorted(date_amounts.keys())
+    amounts = [date_amounts[date] for date in dates]
+
+    return render_template('transactions.html', dates=dates, amounts=amounts)
 
 
 @app.route('/hardcode_cards', methods=['GET'])
@@ -200,16 +213,16 @@ def load_data(file_path):
             )
         transaction.save()
         transactions.append(transaction)
-
+    sorted_transcations = sorted(transactions, key=lambda transaction: transaction.transaction_date)
     # Determine statement start and end dates
-    statement_start_date = transactions[0].transaction_date
-    statement_end_date = transactions[-1].transaction_date
+    statement_start_date = sorted_transcations[0].transaction_date
+    statement_end_date = sorted_transcations[-1].transaction_date
 
     # Create and save a statement
     statement = Statement(
         start_date=statement_start_date,
         end_date=statement_end_date,
-        transactions=transactions,
+        transactions=sorted_transcations,
         total_spending=0,  # Initial value, will be calculated
         name=card_name+'_'+date_str
     )
