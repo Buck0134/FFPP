@@ -34,14 +34,33 @@
                         statementDiv.innerHTML = `
                             <h3>Statement Period: ${formatDate(statement.start_date)}</h3>
                             <p>Total Spending: $${statement.total_spending}</p>
+                            <img src="{{ url_for('static', filename='images/trash-bin.png') }}" alt="Delete" class="delete-icon" onclick="deleteStatement(event, '${statement.name}')">
                         `;
-                        statementDiv.onclick = () => {
-                            window.location.href = `/statements/${statement.name}/transactions`;
+                        statementDiv.onclick = (event) => {
+                            if (event.target.className !== 'delete-icon') {
+                                window.location.href = `/statements/${statement.name}/transactions`;
+                            }
                         };
                         statementsDiv.appendChild(statementDiv);
                     });
                 })
                 .catch(error => console.error('Error fetching statements:', error));
+        }
+
+        function deleteStatement(event, statement_name) {
+            event.stopPropagation();
+            if (confirm('Are you sure you want to delete this statement?')) {
+                console.log("Confirmed")
+                axios.delete(`/statements/${statement_name}`)
+                    .then(response => {
+                        alert(response.data.message);
+                        location.reload(); // Reload the page to refresh the statements list
+                    })
+                    .catch(error => {
+                        console.error('Error deleting statement:', error);
+                        alert('Failed to delete statement');
+                    });
+            }
         }
     </script>
 </head>

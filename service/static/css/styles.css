@@ -24,7 +24,7 @@ h1, h2 {
 }
 
 p {
-    color: #6c757d;
+    color: #e9ffe2;
 }
 
 p1 {
@@ -88,6 +88,40 @@ button:hover {
     display: none;
 }
 
+.success {
+    color: green;
+}
+
+.error {
+    color: red;
+}
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure modal is above other content */
+}
+
+pm {
+    color: #f47b5a;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
 .cards-container {
     display: flex;
     flex-wrap: wrap;
@@ -137,6 +171,15 @@ button:hover {
 
 .statement-box:hover {
     transform: scale(1.05);
+}
+
+.delete-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
 }
 
 .transactions-container {

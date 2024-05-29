@@ -13,7 +13,12 @@ class Statement(me.Document):
     meta = {'collection': 'statements'}
 
     def calculate_total_spending(self):
-        self.total_spending = sum(transaction.amount_usd for transaction in self.transactions)
+        self.total_spending = sum(
+            transaction.amount_usd for transaction in self.transactions
+            if "MOBILE PAYMENT" not in transaction.description.upper() and "PAYMENT" not in transaction.description.upper() and "DEPOSIT" not in transaction.description.upper()
+        )
+        self.save()
+        return self.total_spending
 
     @classmethod
     def clear_statements(cls):

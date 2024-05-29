@@ -9,7 +9,7 @@
 <body class="bg-gray-100 flex items-center justify-center h-screen">
     <div class="container">
         <h1>Welcome to the FFPP!</h1>
-        <p>This is the home page.</p>
+        <p1>This is the home page.</p1>
         <p><a href="/cards">View Cards</a></p>
         
         <hr>
@@ -25,6 +25,19 @@
         <div id="message" class="hidden"></div>
     </div>
 
+    <!-- Modal -->
+    <div id="uploadModal" class="modal hidden">
+        <div class="modal-content">
+            <pm>Uploading...</pm>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal hidden">
+        <div class="modal-content">
+            <pm>Upload Success...</pm>
+        </div>
+    </div>
+
     <script>
         document.getElementById('uploadForm').onsubmit = function(event) {
             event.preventDefault();
@@ -33,6 +46,8 @@
             xhr.open("POST", this.action, true);
             xhr.onload = function () {
                 var messageDiv = document.getElementById('message');
+                var modal = document.getElementById('uploadModal');
+                modal.classList.add('hidden');
                 if (xhr.status === 200) {
                     messageDiv.textContent = 'File uploaded successfully';
                     messageDiv.classList.add('success');
@@ -42,6 +57,16 @@
                 }
                 messageDiv.classList.remove('hidden');
             };
+            xhr.onerror = function () {
+                var messageDiv = document.getElementById('message');
+                var modal = document.getElementById('uploadModal');
+                modal.classList.add('hidden');
+                messageDiv.textContent = 'Error uploading file: Network error';
+                messageDiv.classList.add('error');
+                messageDiv.classList.remove('hidden');
+            };
+            var modal = document.getElementById('uploadModal');
+            modal.classList.remove('hidden');
             xhr.send(formData);
         };
     </script>

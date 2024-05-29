@@ -3,6 +3,8 @@ import os
 import pandas as pd
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template
+import traceback
+# from financekit import create_financekit_blueprint
 
 # Add the path to the `database` and `models` directories to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -16,6 +18,9 @@ from database.connection import client  # Ensure the database connection is esta
 
 app = Flask(__name__)
 
+# app.secret_key = 'your_secret_key'
+# # Register the FinanceKit blueprint
+# create_financekit_blueprint(app)
 
 @app.route('/')
 def home():
@@ -57,7 +62,7 @@ def hardcode_cards():
 def get_statements_by_card(card_name):
     card = Card.objects(name=card_name).first()
     statements = [{"name": statement.name, "start_date": statement.start_date, "end_date": statement.end_date,
-                   "total_spending": statement.total_spending} for statement in Statement.objects(card=card)]
+                   "total_spending": statement.calculate_total_spending()} for statement in Statement.objects(card=card)]
     return jsonify({"statements": statements})
 
 
@@ -93,6 +98,26 @@ def get_transactions_by_statement(statement_name):
     return jsonify({"transactions": transactions_data})
 
 
+@app.route('/statements/<statement_name>', methods=['DELETE'])
+def delete_statement(statement_name):
+    try:
+        statement = Statement.objects(name=statement_name).first()
+        if not statement:
+            return jsonify({"error": "Statement not found"}), 404
+
+        # Delete all transactions associated with the statement
+        Transaction.objects(statement=statement).delete()
+
+        # Delete the statement itself
+        statement.delete()
+
+        return jsonify({"message": "Statement and its transactions deleted successfully"}), 200
+
+    except Exception as e:
+        print(str(e))
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/transactions/<transaction_id>/label', methods=['PUT'])
 def label_transaction(transaction_id):
     data = request.get_json()
@@ -119,31 +144,67 @@ def load_data(file_path):
     # Extract card details from file name
     file_name = os.path.basename(file_path)
     card_name, date_str = file_name.replace('.csv', '').split('-', 1)
+
     # Find or create the card
     card = Card.objects(name=card_name).first()
+    if not card:
+        raise Exception("CARD NOT FOUND")
     # Read the CSV file
-    data = pd.read_csv(file_path)
+    data = pd.read_csv(file_path, encoding='ISO-8859-1')
 
-    # Create transactions
+    # Detect the statement format
+    headers = data.columns
+    if 'Extended Details' in headers:
+        format_type = 1
+    elif 'Clearing_Date' in headers:
+        format_type = 2
+    else:
+        format_type = 3
+
+    # Normalize data based on format
     transactions = []
     for _, row in data.iterrows():
-        transaction = Transaction(
-            transaction_date=datetime.strptime(row['Date'], '%m/%d/%Y'),
-            description=row['Description'],
-            amount_usd=row['Amount'],
-            merchant=row.get('Merchant', ''),
-            category=row.get('Category', ''),
-            clearing_date=None,
-            purchased_by=None,
-            card=card  # Will be linked later
-        )
+        if format_type == 1:
+            address = f"{row.get('Address', '')}, {row.get('City/State', '')}, {row.get('Zip Code', '')}, {row.get('Country', '')}"
+            transaction = Transaction(
+                transaction_date=datetime.strptime(str(row['Date']), '%m/%d/%Y'),
+                description=str(row['Description']),
+                amount_usd=float(row['Amount']),
+                extended_details=str(row.get('Extended Details', '')),
+                appears_on_statement_as=str(row.get('Appears On Your Statement As', '')),
+                address=address,
+                category=str(row.get('Category', '')),
+                card=card
+            )
+        elif format_type == 2:
+            transaction = Transaction(
+                transaction_date=datetime.strptime(str(row['Transaction_Date']), '%m/%d/%Y'),
+                clearing_date=datetime.strptime(str(row['Clearing_Date']), '%m/%d/%Y').date() if row['Clearing_Date'] else None,
+                description=str(row['Description']),
+                merchant=str(row.get('Merchant', '')),
+                category=str(row['Category']),
+                type=str(row.get('Type', '')),
+                amount_usd=float(row['Amount (USD)']),
+                purchased_by=str(row.get('Shared', '')),
+                authorized_by=str(row.get('Purchased By', '')),
+                card=card
+            )
+        else:  # format_type == 3
+            transaction = Transaction(
+                transaction_date=datetime.strptime(str(row['Date']), '%m/%d/%Y'),
+                description=str(row['Description']),
+                amount_usd=float(row['Amount']),
+                merchant=str(row.get('Merchant', '')),
+                category=str(row.get('Category', '')),
+                card=card
+            )
         transaction.save()
         transactions.append(transaction)
 
     # Determine statement start and end dates
     statement_start_date = transactions[0].transaction_date
     statement_end_date = transactions[-1].transaction_date
-    # print(card_name+'_'+date_str)
+
     # Create and save a statement
     statement = Statement(
         start_date=statement_start_date,
@@ -161,14 +222,12 @@ def load_data(file_path):
         transaction.save()
 
     card.statements.append(statement)
-
     card.save()
 
     # Link statement to the card
     statement.card = card
     statement.save()
-    # print(statement)
-    return card.calculate_total_spending()
+
 
 
 @app.route('/upload', methods=['POST'])
@@ -188,8 +247,9 @@ def upload_file():
             total_spending = load_data(file_path)
             return jsonify({"message": "Data loaded successfully", "total_spending": total_spending}), 200
         except Exception as e:
-            # print(str(e))
-            return jsonify({"error": str(e)}), 500
+            tb_str = traceback.format_exc()
+            print(tb_str)
+            return jsonify({"error": str(e), "traceback": tb_str}), 500
     else:
         return jsonify({"error": "Unsupported file type"}), 400
 
