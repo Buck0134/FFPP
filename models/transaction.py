@@ -1,4 +1,6 @@
 import mongoengine as me
+from payment import Payment
+from mongoengine.queryset.visitor import Q
 
 class Transaction(me.Document):
     transaction_date = me.DateTimeField(required=True)
@@ -31,3 +33,31 @@ class Transaction(me.Document):
                 'zip_code': parts[2] if len(parts) > 2 else '',
                 'country': parts[3] if len(parts) > 3 else ''
             }
+    
+    @classmethod
+    def migrate_payments(cls):
+        payment_descriptions = ["MOBILE PAYMENT", "PAYMENT", "DEPOSIT"]
+        transactions = cls.objects(Q(description__icontains="MOBILE PAYMENT") |
+                                   Q(description__icontains="PAYMENT") |
+                                   Q(description__icontains="DEPOSIT"))
+        for transaction in transactions:
+            payment = Payment(
+                transaction_date=transaction.transaction_date,
+                clearing_date=transaction.clearing_date,
+                description=transaction.description,
+                merchant=transaction.merchant,
+                category=transaction.category,
+                amount_usd=transaction.amount_usd,
+                purchased_by=transaction.purchased_by,
+                authorized_by=transaction.authorized_by,
+                extended_details=transaction.extended_details,
+                appears_on_statement_as=transaction.appears_on_statement_as,
+                address=transaction.address,
+                type=transaction.type,
+                statement=transaction.statement,
+                card=transaction.card
+            )
+            payment.save()
+            transaction.delete()
+        
+        print("Payment Transcations Migrated and Processed")

@@ -5,4 +5,5 @@ from database.connection import client  # Ensure the database connection is esta
 
 if __name__ == '__main__':
     Card.hardcode_cards()
+    Transaction.migrate_payments()
     app.run(debug=True)
